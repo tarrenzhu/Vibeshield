@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VibeShield · 可点击原型</title>
+<style>
+  :root {
+    --bg: #FAFAF8;
+    --surface: #FFFFFF;
+    --surface-2: #F4F2EC;
+    --border: rgba(0,0,0,0.10);
+    --border-strong: rgba(0,0,0,0.18);
+    --text: #1F1F1D;
+    --text-2: #5A5A55;
+    --text-3: #8B8B83;
+    --info-bg: #E6F1FB;
+    --info-text: #0C447C;
+    --info-border: #378ADD;
+    --danger-bg: #FCEBEB;
+    --danger-text: #791F1F;
+    --danger-strong: #E24B4A;
+    --warning-bg: #FAEEDA;
+    --warning-text: #633806;
+    --warning-strong: #EF9F27;
+    --success-bg: #EAF3DE;
+    --success-text: #27500A;
+    --success-strong: #639922;
+    --code-bg: #1F1F1D;
+    --code-text: #F1EFE8;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+
+  .frame {
+    max-width: 1180px;
+    margin: 24px auto;
+    padding: 0 20px 60px;
+  }
+
+  /* === Top tabs (prototype navigation) === */
+  .proto-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 999px;
+    padding: 6px;
+    margin-bottom: 24px;
+    width: fit-content;
+  }
+  .proto-tab {
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--text-2);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    transition: all 0.15s ease;
+  }
+  .proto-tab:hover { background: var(--surface-2); }
+  .proto-tab.active {
+    background: var(--text);
+    color: var(--surface);
+    font-weight: 500;
+  }
+
+  /* === Browser chrome === */
+  .browser {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .browser-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border-bottom: 0.5px solid var(--border);
+  }
+  .dots { display: flex; gap: 6px; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot.r { background: #FF5F56; }
+  .dot.y { background: #FFBD2E; }
+  .dot.g { background: #27C93F; }
+  .url {
+    flex: 1;
+    padding: 5px 12px;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--text-2);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  /* === App header (inside browser) === */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: var(--info-bg);
+    color: var(--info-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .brand-name { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+  .plan-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border: 0.5px solid var(--border-strong);
+    border-radius: 999px;
+    color: var(--text-3);
+  }
+  .nav { display: flex; gap: 4px; }
+  .nav-item {
+    font-size: 13px;
+    padding: 6px 12px;
+    color: var(--text-2);
+    cursor: pointer;
+    border-radius: var(--radius-md);
+  }
+  .nav-item.active { background: var(--surface-2); color: var(--text); font-weight: 500; }
+  .avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--info-bg);
+    color: var(--info-text);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+  }
+  .user-block { display: flex; align-items: center; gap: 10px; }
+  .user-email { font-size: 13px; color: var(--text-2); }
+
+  /* === Page === */
+  .page { padding: 28px 32px 40px; min-height: 580px; display: none; }
+  .page.active { display: block; }
+  .page-title { font-size: 22px; font-weight: 600; margin: 0 0 4px; letter-spacing: -0.4px; }
+  .page-subtitle { font-size: 13px; color: var(--text-2); margin: 0 0 24px; }
+
+  /* === KPI cards === */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .kpi {
+    background: var(--surface-2);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+  }
+  .kpi-label { font-size: 12px; color: var(--text-2); margin-bottom: 6px; }
+  .kpi-value { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; }
+  .kpi-value.danger { color: var(--danger-strong); }
+  .kpi-value.warning { color: var(--warning-strong); }
+  .kpi-value.success { color: var(--success-strong); }
+
+  .section-title {
+    font-size: 13px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 18px 0 10px;
+    font-weight: 500;
+  }
+
+  /* === Repo grid === */
+  .repo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .repo {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 13px 16px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .repo:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+  .repo-row {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 6px;
+  }
+  .repo-name { font-size: 14px; font-weight: 600; }
+  .repo-meta { font-size: 12px; color: var(--text-3); }
+  .pill {
+    font-size: 11px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .pill.crit { background: var(--danger-bg); color: var(--danger-text); }
+  .pill.warn { background: var(--warning-bg); color: var(--warning-text); }
+  .pill.clean { background: var(--success-bg); color: var(--success-text); }
+
+  /* === Buttons === */
+  .btn {
+    border: 0.5px solid var(--border-strong);
+    background: var(--surface);
+    padding: 8px 14px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text);
+    font-family: inherit;
+    transition: all 0.15s ease;
+  }
+  .btn:hover { background: var(--surface-2); }
+  .btn:active { transform: scale(0.98); }
+  .btn.primary {
+    background: var(--text);
+    color: var(--surface);
+    border-color: var(--text);
+  }
+  .btn.primary:hover { background: #000; }
+  .btn.danger { color: var(--danger-text); border-color: var(--danger-strong); }
+  .btn.icon-only { width: 36px; padding: 8px 0; text-align: center; }
+
+  /* === Scan results layout === */
+  .scan-layout { display: grid; grid-template-columns: 280px 1fr; gap: 14px; }
+  .findings-list { display: flex; flex-direction: column; gap: 8px; }
+  .finding {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 11px 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .finding:hover { border-color: var(--border-strong); }
+  .finding.selected {
+    border: 1.5px solid var(--info-border);
+    background: #F8FBFF;
+  }
+  .finding-tag {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .finding-tag.crit { color: var(--danger-text); }
+  .finding-tag.warn { color: var(--warning-text); }
+  .severity-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .severity-dot.crit { background: var(--danger-strong); }
+  .severity-dot.warn { background: var(--warning-strong); }
+  .finding-title { font-size: 13px; font-weight: 500; line-height: 1.35; margin-bottom: 4px; }
+  .finding-loc { font-size: 11px; color: var(--text-3); font-family: ui-monospace, monospace; }
+
+  .detail {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 22px;
+  }
+  .detail-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .pill.solid {
+    background: var(--danger-bg); color: var(--danger-text);
+    font-weight: 600; letter-spacing: 0.5px;
+  }
+  .rule-id { font-size: 12px; color: var(--text-2); }
+  .detail-title { font-size: 18px; font-weight: 600; margin: 0 0 12px; letter-spacing: -0.3px; }
+  .detail-body { font-size: 14px; color: var(--text-2); line-height: 1.7; margin-bottom: 16px; }
+  .detail-body strong { color: var(--text); font-weight: 600; }
+
+  .code-block {
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    margin-bottom: 14px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code-block .comment { color: #888780; }
+  .code-block .danger-line {
+    background: #501313;
+    color: #F7C1C1;
+    display: inline-block;
+    padding: 1px 6px;
+    margin: 0 -6px;
+    border-radius: 3px;
+  }
+
+  .button-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .button-row .btn { flex: 1; }
+  .button-row .btn.icon-only { flex: 0 0 36px; }
+
+  .callout {
+    background: var(--surface-2);
+    border-radius: var(--radius-md);
+    padding: 11px 14px;
+    font-size: 12.5px;
+    color: var(--text-2);
+    line-height: 1.65;
+  }
+  .callout strong { color: var(--text); font-weight: 600; }
+  .callout code {
+    font-size: 11.5px;
+    background: var(--surface);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 0.5px solid var(--border);
+  }
+
+  /* === Cursor prompt screen === */
+  .prompt-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    max-width: 760px;
+  }
+  .prompt-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px;
+  }
+  .prompt-meta { font-size: 13px; color: var(--text-2); }
+  .prompt-body {
+    background: var(--surface-2);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* === Landing page === */
+  .landing { padding: 40px 0; text-align: center; max-width: 720px; margin: 0 auto; }
+  .landing h1 { font-size: 38px; font-weight: 700; margin: 0 0 14px; letter-spacing: -1px; line-height: 1.15; }
+  .landing h1 span { color: var(--info-text); }
+  .landing-sub { font-size: 17px; color: var(--text-2); margin: 0 0 28px; line-height: 1.55; }
+  .cta-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 36px; }
+  .cta-row .btn { padding: 11px 20px; font-size: 14px; }
+
+  .feature-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 36px; text-align: left; }
+  .feature {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px;
+  }
+  .feature-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--info-bg);
+    color: var(--info-text);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .feature h3 { font-size: 15px; margin: 0 0 6px; font-weight: 600; }
+  .feature p { font-size: 13px; color: var(--text-2); margin: 0; line-height: 1.6; }
+
+  /* === Pricing === */
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .price-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    position: relative;
+  }
+  .price-card.featured {
+    border: 2px solid var(--info-border);
+  }
+  .price-badge {
+    position: absolute;
+    top: -10px; left: 50%; transform: translateX(-50%);
+    background: var(--info-bg); color: var(--info-text);
+    font-size: 11px; font-weight: 600;
+    padding: 3px 12px; border-radius: 999px;
+  }
+  .price-name { font-size: 14px; font-weight: 600; color: var(--text-2); margin-bottom: 8px; }
+  .price-amount { font-size: 32px; font-weight: 700; letter-spacing: -1px; }
+  .price-period { font-size: 13px; color: var(--text-2); font-weight: 400; }
+  .price-features { list-style: none; padding: 0; margin: 16px 0; font-size: 13px; }
+  .price-features li {
+    padding: 5px 0;
+    color: var(--text-2);
+    display: flex;
+    gap: 6px;
+  }
+  .price-features li:before {
+    content: "✓";
+    color: var(--success-strong);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* === Settings === */
+  .settings-grid { display: grid; grid-template-columns: 200px 1fr; gap: 32px; }
+  .settings-nav { display: flex; flex-direction: column; gap: 4px; }
+  .settings-nav-item {
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: var(--text-2);
+    cursor: pointer;
+  }
+  .settings-nav-item.active { background: var(--surface-2); color: var(--text); font-weight: 500; }
+  .settings-section {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px 22px;
+    margin-bottom: 14px;
+  }
+  .settings-section h3 { font-size: 15px; margin: 0 0 8px; font-weight: 600; }
+  .settings-section p { font-size: 13px; color: var(--text-2); margin: 0 0 14px; }
+  .settings-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0;
+    border-top: 0.5px solid var(--border);
+  }
+  .settings-row:first-of-type { border-top: none; }
+  .repo-info { display: flex; flex-direction: column; gap: 2px; }
+  .repo-info-name { font-size: 13px; font-weight: 500; }
+  .repo-info-status { font-size: 11px; color: var(--text-3); }
+
+  /* === Connect screen === */
+  .connect {
+    text-align: center;
+    padding: 60px 24px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .connect-icon {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    background: var(--info-bg);
+    color: var(--info-text);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+    font-size: 24px;
+    font-weight: 600;
+  }
+  .connect h2 { font-size: 22px; margin: 0 0 8px; font-weight: 600; }
+  .connect p { font-size: 14px; color: var(--text-2); margin: 0 0 22px; line-height: 1.6; }
+
+  /* === Footer hint === */
+  .footer-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <!-- Tab navigation between prototype screens -->
+  <div class="proto-tabs">
+    <button class="proto-tab active" data-page="landing">1 · Landing</button>
+    <button class="proto-tab" data-page="connect">2 · Connect GitHub</button>
+    <button class="proto-tab" data-page="dashboard">3 · Dashboard</button>
+    <button class="proto-tab" data-page="scan">4 · Scan results</button>
+    <button class="proto-tab" data-page="prompt">5 · Cursor prompt</button>
+    <button class="proto-tab" data-page="pricing">6 · Pricing</button>
+    <button class="proto-tab" data-page="settings">7 · Settings</button>
+  </div>
+
+  <div class="browser">
+    <div class="browser-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <div class="url" id="url">https://vibeshield.dev</div>
+    </div>
+
+    <!-- ===== Landing ===== -->
+    <div class="page active" id="page-landing">
+      <div class="app-header" style="border-bottom: 0.5px solid var(--border);">
+        <div class="brand">
+          <div class="logo">V</div>
+          <span class="brand-name">VibeShield</span>
+        </div>
+        <div class="nav">
+          <span class="nav-item">Features</span>
+          <span class="nav-item">Pricing</span>
+          <span class="nav-item">Docs</span>
+        </div>
+        <button class="btn primary">Sign in with GitHub</button>
+      </div>
+
+      <div class="landing">
+        <h1>Snyk for <span>vibe coders</span>.<br/>Catch what Cursor leaves behind.</h1>
+        <p class="landing-sub">VibeShield 在每次 push 后自动扫描你 AI 生成的代码，<br/>用大白话告诉你哪里出问题，并生成一行 Cursor prompt 直接修好。</p>
+        <div class="cta-row">
+          <button class="btn primary">Connect a repo · Free forever</button>
+          <button class="btn">Watch 60s demo</button>
+        </div>
+
+        <div class="feature-row">
+          <div class="feature">
+            <div class="feature-icon">!</div>
+            <h3>10 高频漏洞规则</h3>
+            <p>专为 AI 生成代码设计：泄漏的 API key、Supabase RLS、Stripe webhook、prompt injection 等</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">↗</div>
+            <h3>一键 Cursor 修复</h3>
+            <p>每个发现都自动生成修复 prompt，复制粘贴到 Cursor 就能改完。无需懂安全</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">✓</div>
+            <h3>大白话报告</h3>
+            <p>不用看 CWE-79 这种代号。我们用普通话告诉你"任何人 F12 就能拿到你的数据库密码"</p>
+          </div>
+        </div>
+
+        <p style="font-size: 12px; color: var(--text-3);">点击上方标签切换原型页面 ↑</p>
+      </div>
+    </div>
+
+    <!-- ===== Connect GitHub ===== -->
+    <div class="page" id="page-connect">
+      <div class="app-header">
+        <div class="brand">
+          <div class="logo">V</div>
+          <span class="brand-name">VibeShield</span>
+          <span class="plan-badge">Free</span>
+        </div>
+        <div class="nav">
+          <span class="nav-item active">Dashboard</span>
+          <span class="nav-item">Settings</span>
+          <span class="nav-item">Billing</span>
+        </div>
+        <div class="user-block">
+          <span class="user-email">sarah@indie.dev</span>
+          <div class="avatar">S</div>
+        </div>
+      </div>
+      <div class="connect">
+        <div class="connect-icon">→</div>
+        <h2>Connect your first GitHub repo</h2>
+        <p>VibeShield 会在 60 秒内完成首次扫描。我们只读取代码，绝不存储原文，扫描结果只你和你的 team 能看到。</p>
+        <button class="btn primary" style="padding: 11px 22px;">Install GitHub App</button>
+        <p class="footer-hint">需要 Contents (read), Metadata (read), Pull requests (write) 三项权限</p>
+      </div>
+    </div>
+
+    <!-- ===== Dashboard ===== -->
+    <div class="page" id="page-dashboard">
+      <div class="app-header">
+        <div class="brand">
+          <div class="logo">V</div>
+          <span class="brand-name">VibeShield</span>
+          <span class="plan-badge">Pro</span>
+        </div>
+        <div class="nav">
+          <span class="nav-item active">Dashboard</span>
+          <span class="nav-item">Settings</span>
+          <span class="nav-item">Billing</span>
+        </div>
+        <div class="user-block">
+          <span class="user-email">sarah@indie.dev</span>
+          <div class="avatar">S</div>
+        </div>
+      </div>
+      <div style="padding: 28px 32px 40px;">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">5 个仓库正在监控 · 上次扫描 4 分钟前</p>
+
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">Critical</div><div class="kpi-value danger">3</div></div>
+          <div class="kpi"><div class="kpi-label">Warning</div><div class="kpi-value warning">12</div></div>
+          <div class="kpi"><div class="kpi-label">Repos scanned</div><div class="kpi-value">5</div></div>
+          <div class="kpi"><div class="kpi-label">Fixed this week</div><div class="kpi-value success">8</div></div>
+        </div>
+
+        <div class="section-title">Repositories</div>
+        <div class="repo-grid">
+          <div class="repo" data-goto="scan">
+            <div class="repo-row">
+              <div class="repo-name">indie/notion-clone</div>
+              <span class="pill crit">2 critical</span>
+            </div>
+            <div class="repo-meta">Last scan · 4 min ago · main · #a3f12c</div>
+          </div>
+          <div class="repo">
+            <div class="repo-row">
+              <div class="repo-name">indie/ai-resume-builder</div>
+              <span class="pill warn">5 warnings</span>
+            </div>
+            <div class="repo-meta">Last scan · 2 h ago · pr-42</div>
+          </div>
+          <div class="repo">
+            <div class="repo-row">
+              <div class="repo-name">indie/coffee-shop-pos</div>
+              <span class="pill clean">Clean</span>
+            </div>
+            <div class="repo-meta">Last scan · yesterday · main</div>
+          </div>
+          <div class="repo">
+            <div class="repo-row">
+              <div class="repo-name">indie/saas-starter</div>
+              <span class="pill crit">1 critical</span>
+            </div>
+            <div class="repo-meta">Last scan · 1 day ago · main</div>
+          </div>
+          <div class="repo">
+            <div class="repo-row">
+              <div class="repo-name">indie/ai-chatbot-template</div>
+              <span class="pill warn">3 warnings</span>
+            </div>
+            <div class="repo-meta">Last scan · 2 days ago · main</div>
+          </div>
+          <div class="repo">
+            <div class="repo-row">
+              <div class="repo-name">indie/landing-experiments</div>
+              <span class="pill clean">Clean</span>
+            </div>
+            <div class="repo-meta">Last scan · 3 days ago · main</div>
+          </div>
+        </div>
+
+        <p class="footer-hint">点击仓库卡片可跳转到「扫描结果」页 →</p>
+      </div>
+    </div>
+
+    <!-- ===== Scan Results ===== -->
+    <div class="page" id="page-scan">
+      <div class="app-header">
+        <div class="brand">
+          <div class="logo">V</div>
+          <span class="brand-name">VibeShield</span>
+          <span class="plan-badge">Pro</span>
+        </div>
+        <div class="nav">
+          <span class="nav-item active">Dashboard</span>
+          <span class="nav-item">Settings</span>
+          <span class="nav-item">Billing</span>
+        </div>
+        <div class="user-block">
+          <span class="user-email">sarah@indie.dev</span>
+          <div class="avatar">S</div>
+        </div>
+      </div>
+      <div style="padding: 28px 32px 40px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+          <div>
+            <h1 class="page-title">indie/notion-clone</h1>
+            <p class="page-subtitle">Commit a3f12c on main · scanned 4 min ago · 4 findings</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn">Re-scan</button>
+            <button class="btn primary">View on GitHub</button>
+          </div>
+        </div>
+
+        <div class="scan-layout">
+          <div class="findings-list">
+            <div class="finding selected">
+              <div class="finding-tag crit">
+                <span class="severity-dot crit"></span>Critical
+              </div>
+              <div class="finding-title">Supabase service_role key hardcoded</div>
+              <div class="finding-loc">src/lib/supabase.ts · L7</div>
+            </div>
+            <div class="finding">
+              <div class="finding-tag crit">
+                <span class="severity-dot crit"></span>Critical
+              </div>
+              <div class="finding-title">Stripe webhook signature not verified</div>
+              <div class="finding-loc">api/webhooks/stripe/route.ts · L12</div>
+            </div>
+            <div class="finding">
+              <div class="finding-tag warn">
+                <span class="severity-dot warn"></span>Warning
+              </div>
+              <div class="finding-title">CORS allows all origins on /api/admin</div>
+              <div class="finding-loc">middleware.ts · L4</div>
+            </div>
+            <div class="finding">
+              <div class="finding-tag warn">
+                <span class="severity-dot warn"></span>Warning
+              </div>
+              <div class="finding-title">No rate limit on /api/chat</div>
+              <div class="finding-loc">api/chat/route.ts</div>
+            </div>
+          </div>
+
+          <div class="detail">
+            <div class="detail-head">
+              <span class="pill solid">CRITICAL</span>
+              <span class="rule-id">RULE-001 · Hardcoded secret</span>
+            </div>
+            <h2 class="detail-title">Supabase service_role key is hardcoded in your code</h2>
+            <p class="detail-body">
+              <strong>大白话：</strong>你把 Supabase 的"超级管理员钥匙"直接写进了前端能访问到的文件里。任何人在浏览器按 F12 就能看到这个 key——拿到之后他就能读取/删除/篡改你数据库里所有用户的全部数据。这是 vibe coder 最常见的 #1 漏洞。
+            </p>
+
+            <div class="code-block"><span class="comment">// src/lib/supabase.ts</span>
+import { createClient } from '@supabase/supabase-js'
+<span class="danger-line">const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5..."</span>
+export const supabase = createClient(URL, SERVICE_KEY)</div>
+
+            <div class="button-row">
+              <button class="btn primary" data-goto="prompt">Copy Cursor prompt ↗</button>
+              <button class="btn">Auto-fix PR ↗</button>
+              <button class="btn icon-only" title="Mark as false positive">✕</button>
+            </div>
+
+            <div class="callout">
+              <strong>How to fix in 30 seconds:</strong> 把 key 移到 <code>.env.local</code> 命名为 <code>SUPABASE_SERVICE_ROLE_KEY</code>，只在服务端文件 (Route Handlers / Server Actions) 里读取，绝不在 <code>"use client"</code> 文件里 import。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Cursor prompt ===== -->
+    <div class="page" id="page-prompt">
+      <div class="app-header">
+        <div class="brand">
+          <div class="logo">V</div>
+          <span class="brand-name">VibeShield</span>
+          <span class="plan-badge">Pro</span>
+        </div>
+        <div class="nav">
+          <span class="nav-item active">Dashboard</span>
+          <span class="nav-item">Settings</span>
+          <span class="nav-item">Billing</span>
+        </div>
+        <div class="user-block">
+          <span class="user-email">sarah@indie.dev</span>
+          <div class="avatar">S</div>
+        </div>
+      </div>
+      <div style="padding: 28px 32px 40px;">
+        <h1 class="page-title">Cursor 修复 prompt</h1>
+        <p class="page-subtitle">已自动生成 · 复制后粘贴到 Cursor chat 即可让 AI 改好</p>
+
+        <div class="prompt-card">
+          <div class="prompt-head">
+            <span class="prompt-meta">RULE-001 · Hardcoded secret · src/lib/supabase.ts</span>
+            <button class="btn primary">Copy</button>
+          </div>
+          <div class="prompt-body">@src/lib/supabase.ts
+
+This file has a CRITICAL security issue: the Supabase service_role
+key is hardcoded in source code, which means anyone reading the
+bundled JavaScript can use it as a database superuser.
+
+Please fix by:
+1. Move the key to .env.local as SUPABASE_SERVICE_ROLE_KEY
+2. Only read process.env.SUPABASE_SERVICE_ROLE_KEY in server-only
+   files (route handlers under app/api/*, server actions).
+3. For browser/client code, use NEXT_PUBLIC_SUPABASE_ANON_KEY only.
+4. Add a check at the top of supabase.ts that throws if the env
+   is missing.
+5. Update .gitignore to make sure .env.local is not committed.
+
+Do not change any other logic in this file.</div>
+        </div>
+
+        <div style="margin-top: 22px; max-width: 760px;">
+          <div class="callout">
+            <strong>下一步：</strong>把这段 prompt 粘到 Cursor 的 Composer。Cursor 改完后 push 到 GitHub，VibeShield 会在下次扫描时自动把这个 finding 标记为已修复。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Pricing ===== -->
+    <div class="page" id="page-pricing">
+      <div class="app-header">
+        <div class="brand">
+          <div class="logo">V</div>
+          <span class="brand-name">VibeShield</span>
+        </div>
+        <div class="nav">
+          <span class="nav-item">Features</span>
+          <span class="nav-item active">Pricing</span>
+          <span class="nav-item">Docs</span>
+        </div>
+        <button class="btn">Sign in</button>
+      </div>
+      <div style="padding: 40px 32px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <h1 class="page-title" style="font-size: 28px; margin-bottom: 8px;">简单的定价 · 没有暗黑套路</h1>
+          <p class="page-subtitle" style="font-size: 15px;">取消随时生效 · 14 天无理由退款 · 无设置费</p>
+        </div>
+
+        <div class="pricing-grid">
+          <div class="price-card">
+            <div class="price-name">Free</div>
+            <div class="price-amount">$0<span class="price-period">/月</span></div>
+            <ul class="price-features">
+              <li>1 个 GitHub repo</li>
+              <li>每月 5 次扫描</li>
+              <li>大白话报告</li>
+              <li>Cursor prompt 复制</li>
+              <li>邮件通知</li>
+            </ul>
+            <button class="btn" style="width: 100%;">免费开始</button>
+          </div>
+
+          <div class="price-card featured">
+            <div class="price-badge">推荐 · 最受欢迎</div>
+            <div class="price-name">Pro</div>
+            <div class="price-amount">$19<span class="price-period">/月</span></div>
+            <ul class="price-features">
+              <li>5 个 GitHub repo</li>
+              <li>无限次扫描</li>
+              <li>PR 实时检查</li>
+              <li>Auto-Fix PR（一键修复）</li>
+              <li>Slack / Discord 通知</li>
+              <li>历史趋势图</li>
+            </ul>
+            <button class="btn primary" style="width: 100%;">升级 Pro</button>
+          </div>
+
+          <div class="price-card">
+            <div class="price-name">Team</div>
+            <div class="price-amount">$49<span class="price-period">/月</span></div>
+            <ul class="price-features">
+              <li>25 个 GitHub repo</li>
+              <li>5 个团队成员</li>
+              <li>团队仪表盘</li>
+              <li>SSO（SAML / OIDC）</li>
+              <li>优先客服</li>
+              <li>所有 Pro 功能</li>
+            </ul>
+            <button class="btn" style="width: 100%;">升级 Team</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Settings ===== -->
+    <div class="page" id="page-settings">
+      <div class="app-header">
+        <div class="brand">
+          <div class="logo">V</div>
+          <span class="brand-name">VibeShield</span>
+          <span class="plan-badge">Pro</span>
+        </div>
+        <div class="nav">
+          <span class="nav-item">Dashboard</span>
+          <span class="nav-item active">Settings</span>
+          <span class="nav-item">Billing</span>
+        </div>
+        <div class="user-block">
+          <span class="user-email">sarah@indie.dev</span>
+          <div class="avatar">S</div>
+        </div>
+      </div>
+      <div style="padding: 28px 32px 40px;">
+        <h1 class="page-title">Settings</h1>
+        <p class="page-subtitle">管理你的仓库、通知与 API 凭证</p>
+
+        <div class="settings-grid">
+          <div class="settings-nav">
+            <div class="settings-nav-item active">GitHub repos</div>
+            <div class="settings-nav-item">Notifications</div>
+            <div class="settings-nav-item">API tokens</div>
+            <div class="settings-nav-item">Team</div>
+            <div class="settings-nav-item">Profile</div>
+          </div>
+
+          <div>
+            <div class="settings-section">
+              <h3>Connected GitHub repositories</h3>
+              <p>VibeShield 会在每次 push 后自动扫描这些仓库。</p>
+
+              <div class="settings-row">
+                <div class="repo-info">
+                  <span class="repo-info-name">indie/notion-clone</span>
+                  <span class="repo-info-status">Active · last scan 4 min ago</span>
+                </div>
+                <button class="btn danger">Disconnect</button>
+              </div>
+              <div class="settings-row">
+                <div class="repo-info">
+                  <span class="repo-info-name">indie/ai-resume-builder</span>
+                  <span class="repo-info-status">Active · last scan 2 h ago</span>
+                </div>
+                <button class="btn danger">Disconnect</button>
+              </div>
+              <div class="settings-row">
+                <div class="repo-info">
+                  <span class="repo-info-name">indie/coffee-shop-pos</span>
+                  <span class="repo-info-status">Active · last scan yesterday</span>
+                </div>
+                <button class="btn danger">Disconnect</button>
+              </div>
+
+              <div style="margin-top: 14px;">
+                <button class="btn primary">+ Connect another repo</button>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3>Notifications</h3>
+              <p>每次扫描完成后我们怎么通知你。</p>
+              <div class="settings-row">
+                <div class="repo-info">
+                  <span class="repo-info-name">Email</span>
+                  <span class="repo-info-status">sarah@indie.dev</span>
+                </div>
+                <button class="btn">Edit</button>
+              </div>
+              <div class="settings-row">
+                <div class="repo-info">
+                  <span class="repo-info-name">Slack webhook</span>
+                  <span class="repo-info-status">https://hooks.slack.com/services/T0***</span>
+                </div>
+                <button class="btn">Edit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="footer-hint">这是 VibeShield 的可点击原型 · 用于演示和需求验证 · 无任何后端逻辑</p>
+</div>
+
+<script>
+  const tabs = document.querySelectorAll('.proto-tab');
+  const pages = document.querySelectorAll('.page');
+  const urlBar = document.getElementById('url');
+  const urlMap = {
+    landing: 'https://vibeshield.dev',
+    connect: 'https://app.vibeshield.dev/connect',
+    dashboard: 'https://app.vibeshield.dev/dashboard',
+    scan: 'https://app.vibeshield.dev/repos/notion-clone',
+    prompt: 'https://app.vibeshield.dev/findings/4f2-cursor-prompt',
+    pricing: 'https://vibeshield.dev/pricing',
+    settings: 'https://app.vibeshield.dev/settings'
+  };
+
+  function go(pageId) {
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.page === pageId));
+    pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + pageId));
+    urlBar.textContent = urlMap[pageId] || '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => go(tab.dataset.page));
+  });
+
+  document.querySelectorAll('[data-goto]').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      go(el.dataset.goto);
+    });
+  });
+</script>
+
+</body>
+</html>
