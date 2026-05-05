@@ -78,13 +78,17 @@ export async function getRepoByFullName(fullName: string): Promise<Repo | null> 
 }
 
 export async function upsertRepo(repo: Omit<Repo, "id" | "last_scan_at">) {
-  const { data, error } = await db().from("repos").upsert({
+  // Check if repo already exists by full_name
+  const existing = await getRepoByFullName(repo.full_name);
+  if (existing) return existing;
+
+  const { data, error } = await db().from("repos").insert({
     github_repo_id: repo.github_repo_id,
     org_id: repo.org_id,
     full_name: repo.full_name,
     default_branch: repo.default_branch,
     github_installation_id: repo.github_installation_id,
-  }, { onConflict: "github_repo_id" }).select().single();
+  }).select().single();
 
   if (error) throw error;
   return data;
