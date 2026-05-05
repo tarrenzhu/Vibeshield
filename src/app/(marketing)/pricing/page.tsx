@@ -1,56 +1,6 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Shield, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-const plans = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    features: [
-      "1 GitHub repo",
-      "5 scans per month",
-      "Plain-English explanations",
-      "Basic security rules",
-    ],
-    cta: "Get Started",
-    href: "/dashboard",
-    highlighted: false,
-  },
-  {
-    name: "Pro",
-    price: "$19",
-    period: "/month",
-    features: [
-      "5 GitHub repos",
-      "Unlimited scans",
-      "Cursor fix prompts",
-      "Slack notifications",
-      "PR comments",
-      "History & trends",
-    ],
-    cta: "Start Pro",
-    href: "/billing",
-    highlighted: true,
-  },
-  {
-    name: "Team",
-    price: "$49",
-    period: "/month",
-    features: [
-      "25 repos",
-      "5 team seats",
-      "Auto-Fix PR",
-      "Team dashboard",
-      "SSO",
-      "Priority support",
-    ],
-    cta: "Start Team",
-    href: "/billing",
-    highlighted: false,
-  },
-];
 
 export default function PricingPage() {
   return (
@@ -68,51 +18,44 @@ export default function PricingPage() {
         </Link>
       </nav>
 
-      <section className="max-w-5xl mx-auto px-6 py-20">
-        <h1 className="text-4xl font-extrabold text-center text-gray-900">
-          Simple, transparent pricing
+      <section className="max-w-2xl mx-auto px-6 py-20 text-center">
+        <span className="px-3 py-1 text-sm font-medium bg-indigo-100 text-indigo-700 rounded-full">
+          Free Beta
+        </span>
+        <h1 className="mt-6 text-4xl font-extrabold text-gray-900">
+          Everything is free during beta
         </h1>
-        <p className="mt-4 text-lg text-center text-gray-500">
-          Start free. Upgrade when you&apos;re ready.
+        <p className="mt-4 text-lg text-gray-500">
+          We're building the best security companion for vibe coders.
+          Paid plans will come once the product is stable.
         </p>
 
-        <div className="mt-12 grid grid-cols-3 gap-6">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={cn(
-                "rounded-2xl border p-8",
-                plan.highlighted
-                  ? "border-indigo-600 ring-2 ring-indigo-600"
-                  : "border-gray-200"
-              )}
-            >
-              <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
-              <p className="mt-4">
-                <span className="text-4xl font-extrabold text-gray-900">
-                  {plan.price}
-                </span>
-                <span className="text-gray-500">{plan.period}</span>
-              </p>
-              <ul className="mt-6 space-y-3">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
-                    <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href={plan.href}
-                className={cn(
-                  buttonVariants(plan.highlighted ? {} : { variant: "outline" }),
-                  "mt-8 w-full"
-                )}
-              >
-                {plan.cta}
-              </Link>
-            </div>
-          ))}
+        <div className="mt-12 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl border border-indigo-200 p-8 text-left">
+          <h3 className="text-lg font-semibold text-gray-900">What you get</h3>
+          <ul className="mt-6 space-y-3">
+            {[
+              "Unlimited repos & scans",
+              "All 10 security rules",
+              "Plain-English explanations",
+              "One-click Cursor fix prompts",
+              "Slack & Discord notifications",
+              "GitHub PR comments",
+              "Auto-Fix PR generation",
+              "Priority support",
+            ].map((f) => (
+              <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
+                <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                {f}
+              </li>
+            ))}
+          </ul>
+
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center justify-center mt-8 w-full px-4 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Get Started Free
+          </Link>
         </div>
       </section>
     </main>

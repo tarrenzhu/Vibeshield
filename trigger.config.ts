@@ -3,7 +3,7 @@ import { defineConfig } from "@trigger.dev/sdk/v3";
 export default defineConfig({
   // ⚠️  Replace with your real Trigger.dev project ID from dashboard:
   //     https://cloud.trigger.dev/orgs/<workspace>/projects
-  project: process.env.TRIGGER_PROJECT_ID ?? "proj_xxxxxxxxxxxx",
+  project: process.env.TRIGGER_PROJECT_ID ?? "proj_hupveypopocfcxviadqd",
   runtime: "node",
   logLevel: "log",
   maxDuration: 600,
