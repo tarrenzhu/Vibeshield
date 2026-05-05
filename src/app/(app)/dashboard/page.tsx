@@ -1,19 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { ShieldAlert, AlertTriangle, FolderGit2, CheckCircle2, Search, Loader2 } from "lucide-react";
+
+interface ScanResult {
+  success?: boolean;
+  message?: string;
+  error?: string;
+  findings?: number;
+  critical?: number;
+  warning?: number;
+}
 
 export default function DashboardPage() {
   const { user } = useUser();
   const [repoUrl, setRepoUrl] = useState("");
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<{
-    success?: boolean;
-    message?: string;
-    error?: string;
-  } | null>(null);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
 
   const handleScan = async () => {
     if (!repoUrl.trim()) return;
@@ -50,21 +55,21 @@ export default function DashboardPage() {
       <div className="grid grid-cols-4 gap-4 mb-8">
         <KpiCard
           title="Critical"
-          value={0}
+          value={scanResult?.critical ?? 0}
           icon={ShieldAlert}
           color="text-red-600"
           bg="bg-red-50"
         />
         <KpiCard
           title="Warnings"
-          value={0}
+          value={scanResult?.warning ?? 0}
           icon={AlertTriangle}
           color="text-amber-600"
           bg="bg-amber-50"
         />
         <KpiCard
           title="Repos Scanned"
-          value={0}
+          value={scanResult?.success ? 1 : 0}
           icon={FolderGit2}
           color="text-blue-600"
           bg="bg-blue-50"
@@ -122,9 +127,19 @@ export default function DashboardPage() {
               <p>❌ {scanResult.error}</p>
             ) : (
               <div>
-                <p className="font-medium">✅ {scanResult.message}</p>
-                {(scanResult as any).note && (
-                  <p className="mt-1 text-green-600">{(scanResult as any).note}</p>
+                <p className="font-medium">{scanResult.message}</p>
+                {scanResult.findings !== undefined && (
+                  <div className="flex gap-4 mt-2">
+                    <span className="text-red-700 font-semibold">
+                      🔴 {scanResult.critical ?? 0} Critical
+                    </span>
+                    <span className="text-amber-700 font-semibold">
+                      🟡 {scanResult.warning ?? 0} Warnings
+                    </span>
+                    <span className="text-gray-600">
+                      📊 {scanResult.findings ?? 0} Total
+                    </span>
+                  </div>
                 )}
               </div>
             )}
@@ -132,15 +147,18 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Empty State */}
+      {/* Empty State or Results */}
       <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
         <FolderGit2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          No repos connected yet
+          {scanResult?.success
+            ? "Scan complete! See your repo for detailed findings."
+            : "No repos scanned yet"}
         </h3>
         <p className="text-gray-500 mb-4 max-w-md mx-auto">
-          Scan a repo above to start checking your AI-generated code for
-          security issues.
+          {scanResult?.success
+            ? `Found ${scanResult.findings} potential issues in your code.`
+            : "Scan a repo above to start checking your AI-generated code for security issues."}
         </p>
       </div>
     </div>
