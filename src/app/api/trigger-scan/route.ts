@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { getOrCreateOrg, upsertRepo } from "@/lib/db/repositories";
+import { runScan } from "@/lib/scan/engine";
 
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
@@ -25,7 +26,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing repoUrl" }, { status: 400 });
   }
 
-  // Parse GitHub URL: https://github.com/owner/repo
   const match = repoUrl.match(/github\.com\/([^\/]+\/[^\/]+?)(?:\.git)?$/);
   if (!match) {
     return NextResponse.json({
@@ -38,7 +38,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const { orgId } = await getOrCreateOrg(userId, email);
-
     const repo = await upsertRepo({
       org_id: orgId,
       github_repo_id: 0,
@@ -47,16 +46,26 @@ export async function POST(request: NextRequest) {
       github_installation_id: null,
     });
 
+    // Run scan immediately
+    const result = await runScan(
+      repo.id,
+      repoFullName,
+      "main",
+      0
+    );
+
     return NextResponse.json({
       success: true,
-      message: `✅ ${repoFullName} added! Scan engine will run on next push.`,
+      message: `✅ Scanned ${repoFullName}`,
       repoId: repo.id,
-      repoName: repoFullName,
+      findings: result.findings.length,
+      critical: result.findings.filter((f) => f.severity === "critical").length,
+      warning: result.findings.filter((f) => f.severity === "warning").length,
     });
   } catch (err: any) {
     console.error("Scan trigger error:", err);
     return NextResponse.json({
-      error: err.message || "Failed to add repository",
+      error: err.message || "Failed to scan repository",
     }, { status: 500 });
   }
 }
