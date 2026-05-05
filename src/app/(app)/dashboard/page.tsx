@@ -21,7 +21,7 @@ export default function DashboardPage() {
     setScanResult(null);
 
     try {
-      const res = await fetch("/api/scan/trigger", {
+      const res = await fetch("/api/trigger-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ repoUrl: repoUrl.trim() }),
