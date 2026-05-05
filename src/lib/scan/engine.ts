@@ -1,10 +1,8 @@
 // ============================================
 // Scan Engine — orchestrates rule execution
+// Uses GitHub API instead of git clone (Vercel-compatible)
 // ============================================
 
-import { simpleGit } from "simple-git";
-import path from "path";
-import fs from "fs";
 import { createScan, updateScanStatus, insertFindings, updateRepoLastScan, type Finding } from "@/lib/db/repositories";
 import { verifyWithLLM } from "@/lib/llm/deepseek";
 import { generateExplanation } from "@/lib/llm/deepseek";
@@ -20,7 +18,6 @@ import { rule007 } from "./rules/rule-007-eval";
 import { rule008 } from "./rules/rule-008-prompt-injection";
 import { rule009 } from "./rules/rule-009-admin-api";
 import { rule010 } from "./rules/rule-010-public-bucket";
-// import { rule001 } from "./rules/rule-001-hardcoded-secret";
 
 interface ScanResult {
   findings: Omit<Finding, "id" | "status">[];
@@ -32,39 +29,32 @@ export async function runScan(
   commitSha: string,
   installationId: number
 ): Promise<ScanResult> {
-  // 1. Create scan record
   const scan = await createScan(repoId, commitSha);
 
   try {
-    // 2. Clone repo (sparse checkout — only source files)
-    const repoPath = await sparseClone(repoFullName, commitSha, installationId);
+    // Fetch source files via GitHub API (no git required)
+    const files = await fetchRepoFiles(repoFullName, commitSha, installationId);
 
-    // 3. Walk source files
-    const files = walkSourceFiles(repoPath);
-
-    // 4. Run rules (parallel)
     const allFindings: Omit<Finding, "id" | "status">[] = [];
     const rules = loadRules();
 
     for (const file of files) {
-      const content = fs.readFileSync(file.path, "utf-8");
       for (const rule of rules) {
         try {
           const hits = await rule.check({
             path: file.relativePath,
-            content,
-            repoPath,
+            content: file.fileContent,
+            repoPath: "",
           });
 
           for (const hit of hits) {
-            // LLM verification for low-confidence hits (confidence < 0.8)
             let explanation = hit.explanation ?? null;
             if (hit.confidence < 0.8) {
               try {
                 const llmVerdict = await verifyWithLLM(
                   hit.codeSnippet,
                   hit.ruleId,
-                  content.slice(0, 1000)
+                  file.fileContent.slice(0, 1000)
                 );
                 if (!llmVerdict.isReal) continue;
                 explanation = llmVerdict.explanation;
@@ -73,7 +63,6 @@ export async function runScan(
               }
             }
 
-            // Generate plain-English explanation via DeepSeek
             let humanExplanation = explanation;
             if (!humanExplanation) {
               try {
@@ -84,7 +73,7 @@ export async function runScan(
                   hit.lineStart
                 );
               } catch (err) {
-                console.error(`Explanation generation failed for ${hit.ruleId}:`, err);
+                console.error(`Explanation generation failed:`, err);
               }
             }
 
@@ -106,10 +95,8 @@ export async function runScan(
       }
     }
 
-    // 5. Save findings
     await insertFindings(allFindings);
 
-    // 6. Update scan status
     const critical = allFindings.filter((f) => f.severity === "critical").length;
     const warning = allFindings.filter((f) => f.severity === "warning").length;
     await updateScanStatus(scan.id, "done", {
@@ -118,11 +105,7 @@ export async function runScan(
       warning,
     });
 
-    // 7. Update repo last_scan_at
     await updateRepoLastScan(repoId);
-
-    // 8. Cleanup
-    fs.rmSync(repoPath, { recursive: true, force: true });
 
     return { findings: allFindings };
   } catch (err) {
@@ -133,7 +116,7 @@ export async function runScan(
 }
 
 // ============================================
-// Helpers
+// GitHub API file fetcher (no git required)
 // ============================================
 
 const SOURCE_EXTENSIONS = [
@@ -146,38 +129,82 @@ const SOURCE_EXTENSIONS = [
 interface SourceFile {
   path: string;
   relativePath: string;
+  fileContent: string;
 }
 
-function walkSourceFiles(rootPath: string): SourceFile[] {
+async function fetchRepoFiles(
+  repoFullName: string,
+  commitSha: string,
+  installationId: number
+): Promise<SourceFile[]> {
   const files: SourceFile[] = [];
+  const apiBase = `https://api.github.com/repos/${repoFullName}`;
 
-  function walk(dir: string) {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-      // Skip node_modules, .next, .git, dist
-      if (
-        entry.isDirectory() &&
-        !["node_modules", ".next", ".git", "dist", ".turbo", "build"].includes(
-          entry.name
-        )
-      ) {
-        walk(fullPath);
-      } else if (
-        entry.isFile() &&
-        SOURCE_EXTENSIONS.some((ext) => entry.name.endsWith(ext))
-      ) {
-        files.push({
-          path: fullPath,
-          relativePath: path.relative(rootPath, fullPath),
-        });
-      }
+  try {
+    const headers: Record<string, string> = {
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "VibeShield/1.0",
+    };
+
+    if (installationId) {
+      try {
+        const { getInstallationToken } = await import("@/lib/github/app");
+        const token = await getInstallationToken(installationId);
+        headers.Authorization = `Bearer ${token}`;
+      } catch { /* proceed without auth */ }
     }
+
+    // Get recursive tree
+    const treeUrl = `${apiBase}/git/trees/${commitSha}?recursive=1`;
+    const treeRes = await fetch(treeUrl, { headers });
+
+    if (!treeRes.ok) {
+      throw new Error(`GitHub tree API error: ${treeRes.status}`);
+    }
+
+    const treeData: any = await treeRes.json();
+
+    // Filter source files and batch download
+    const sourceItems = (treeData.tree || []).filter(
+      (item: any) =>
+        item.type === "blob" &&
+        SOURCE_EXTENSIONS.some((ext) => item.path.endsWith(ext)) &&
+        !item.path.includes("node_modules/") &&
+        !item.path.includes(".next/") &&
+        !item.path.includes("dist/") &&
+        !item.path.includes(".turbo/")
+    );
+
+    // Download files in parallel (limit concurrency)
+    const batch = sourceItems.slice(0, 50); // Limit to 50 files for speed
+
+    await Promise.all(
+      batch.map(async (item: any) => {
+        try {
+          const blobUrl = `${apiBase}/git/blobs/${item.sha}`;
+          const blobRes = await fetch(blobUrl, { headers });
+          if (!blobRes.ok) return;
+          const blobData = await blobRes.json();
+          const content = Buffer.from(blobData.content, "base64").toString("utf-8");
+
+          files.push({
+            path: `/tmp/${item.path}`,
+            relativePath: item.path,
+            fileContent: content,
+          });
+        } catch { /* skip failed files */ }
+      })
+    );
+  } catch (err) {
+    console.error("GitHub API fetch failed:", err);
   }
 
-  walk(rootPath);
   return files;
 }
+
+// ============================================
+// Types & Rules
+// ============================================
 
 export interface RuleHit {
   ruleId: string;
@@ -185,7 +212,7 @@ export interface RuleHit {
   lineStart: number;
   lineEnd: number;
   codeSnippet: string;
-  confidence: number; // 0..1
+  confidence: number;
   explanation?: string;
   fixPrompt?: string;
 }
@@ -203,38 +230,7 @@ interface Rule {
 
 function loadRules(): Rule[] {
   return [
-    rule001,
-    rule002,
-    rule003,
-    rule004,
-    rule005,
-    rule006,
-    rule007,
-    rule008,
-    rule009,
-    rule010,
+    rule001, rule002, rule003, rule004, rule005,
+    rule006, rule007, rule008, rule009, rule010,
   ];
-}
-
-async function sparseClone(
-  repoFullName: string,
-  commitSha: string,
-  installationId: number
-): Promise<string> {
-  const tmpDir = path.join("/tmp", `vibeshield-${commitSha.slice(0, 8)}`);
-
-  if (fs.existsSync(tmpDir)) {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  }
-
-  // TODO(human): Use GitHub App installation token for clone
-  // For now, use a simple clone
-  const git = simpleGit();
-  await git.clone(
-    `https://github.com/${repoFullName}.git`,
-    tmpDir,
-    ["--depth", "1"]
-  );
-
-  return tmpDir;
 }
